@@ -1,37 +1,17 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Drawing.Printing;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Windows.Forms;
-using Microsoft.Office.Interop.Word;
-using System.IO;
 using System.Diagnostics;
+using System.IO;
 using System.Reflection;
-using Microsoft.VisualBasic;
-using Microsoft.Office.Interop.Outlook;
-using Exception = System.Exception;
-using EnvDTE;
-using EnvDTE80;
-using System.Runtime.InteropServices;
-using Document = Microsoft.Office.Interop.Word.Document;
+using System.Windows.Forms;
 using Application = Microsoft.Office.Interop.Word.Application;
-using Font = Microsoft.Office.Interop.Word.Font;
-using System.Web;
-using RawPrint;
+using Exception = System.Exception;
 
 namespace aQua_Institut_Druckmanger //drucken ohne Dialog
 {
     public partial class Form1 : Form
     {
         BindingList<Datei> dateienList = new BindingList<Datei>();
-       
         public Form1()
         {
             InitializeComponent();
@@ -100,20 +80,24 @@ namespace aQua_Institut_Druckmanger //drucken ohne Dialog
             {
                 foreach (Datei datei in dateienList)
                 {
-                    
-                    /* Console.WriteLine(datei.pfad);                //C:\Users\J.Lee\Desktop\Documents\filename.docx
+
+                    /* 
                      Console.WriteLine(datei.Dateiname);             //filename.docx
                      Console.WriteLine(datei.fileDirectory);         //C:\Users\J.Lee\Desktop\Documents
+                     Console.WriteLine(datei.pfad);                  //C:\Users\J.Lee\Desktop\Documents\filename.docx
                      Console.WriteLine(datei.newPath);               //C:\Users\J.Lee\Desktop\newselectedfolder\filename
-                     Console.WriteLine(datei.NeuerDateiname);        //filename
                      Console.WriteLine(datei.newFileDirectory);      //C:\Users\J.Lee\Desktop\newselectedfolder
+                     Console.WriteLine(datei.NeuerDateiname);        //filename
                      */
                     if (string.IsNullOrEmpty(datei.NeuerDateiname) == false) 
                     {
                         FolderBrowserDialog fbd1 = new FolderBrowserDialog();
                         fbd1.ShowNewFolderButton = true;
-                        if(fbd1.ShowDialog() == DialogResult.OK)
+                        datei.fileDirectory = Path.GetDirectoryName(datei.pfad);
+                        if (fbd1.ShowDialog() == DialogResult.OK)
                         {
+                            datei.newPath = Path.GetFullPath(fbd1.SelectedPath + "\\" + datei.NeuerDateiname);
+
                             if (string.IsNullOrEmpty(datei.TextWasserzeichen) == false) //watermark
                             {
                                 //datei.newPath = Path.GetFullPath(fbd1.SelectedPath + "\\" + datei.NeuerDateiname);
@@ -128,9 +112,10 @@ namespace aQua_Institut_Druckmanger //drucken ohne Dialog
                             {
                                 PdfErzeugen(datei);
                             }
-                            datei.fileDirectory = Path.GetDirectoryName(datei.pfad);
-                            datei.newPath = Path.GetFullPath(fbd1.SelectedPath + "\\" + datei.NeuerDateiname);
-                            SaveAs(datei);
+                            else
+                            {
+                                SaveAs(datei);// file save 
+                            }
                         }
                     }
                 }
@@ -179,43 +164,51 @@ namespace aQua_Institut_Druckmanger //drucken ohne Dialog
         {
             File.Copy(Path.Combine(datei.fileDirectory, datei.Dateiname), datei.newPath + ".docx");
         }
-        private void AddTextWatermark(Datei datei) 
-        {
-            object oMissing = Missing.Value;
-            Microsoft.Office.Interop.Word.Document doc = null;
-            Microsoft.Office.Interop.Word.Application app= null;
-            doc = app.Documents.Open(datei.pfad);
-            doc.Activate();
-            Microsoft.Office.Interop.Word.Shape textWatermark = null;
-            foreach(Microsoft.Office.Interop.Word.Section section in doc.Sections)
-            {
-                textWatermark = section.Headers[Microsoft.Office.Interop.Word.WdHeaderFooterIndex.wdHeaderFooterPrimary].Shapes.AddTextEffect(Microsoft.Office.Core.MsoPresetTextEffect.msoTextEffect1,
-                                datei.TextWasserzeichen, "Arial", (float)60, Microsoft.Office.Core.MsoTriState.msoTrue, 
-                                Microsoft.Office.Core.MsoTriState.msoFalse, 0, 0, ref oMissing);
-                textWatermark.Select(ref oMissing);
-                textWatermark.Fill.Visible = Microsoft.Office.Core.MsoTriState.msoTrue;
-                textWatermark.Line.Visible = Microsoft.Office.Core.MsoTriState.msoFalse;
-                textWatermark.Fill.Solid();
-                textWatermark.Fill.ForeColor.RGB = (Int32)Microsoft.Office.Interop.Word.WdColor.wdColorGray10;
-                textWatermark.RelativeHorizontalPosition = Microsoft.Office.Interop.Word.WdRelativeHorizontalPosition.wdRelativeHorizontalPositionMargin;
-                textWatermark.RelativeVerticalPosition = Microsoft.Office.Interop.Word.WdRelativeVerticalPosition.wdRelativeVerticalPositionMargin;
-                textWatermark.Left = (float)Microsoft.Office.Interop.Word.WdShapePosition.wdShapeCenter;
-                textWatermark.Top = (float)Microsoft.Office.Interop.Word.WdShapePosition.wdShapeCenter;
-                textWatermark.Height = app.InchesToPoints(2.4f);
-                textWatermark.Width = app.InchesToPoints(6f);
-            }
-            doc.SaveAs2(datei.newPath + " mit Wasserzeichen.docx");
-            doc.Close();
-            app.Quit();
-        }
-       
-    
-        private void UmlautEntfernen(Datei datei)
+        private void AddTextWatermark(Datei datei) //Wasserzeichen
         {
             Microsoft.Office.Interop.Word.Application app = new Application();
             object o = Missing.Value;
-            object t = true;
-            object f = false;
+            object oTrue = true;
+            object oFalse = false;
+            Microsoft.Office.Interop.Word.Document doc = null;
+            doc = app.Documents.Open(datei.pfad, ref o, ref o, ref o, ref o, ref o, ref o, ref o, ref o, ref o, ref o, ref o, ref o, ref o, ref o, ref o);
+            doc.Activate();
+            //add function
+            doc.SaveAs2(datei.newPath + " mit Wasserzeichen in Text.docx", ref o, ref o, ref o, ref o, ref o, ref o, ref o, ref o, ref o, ref o, ref o, ref o, ref o, ref o, ref o, ref o);
+            doc.Close();
+            app.Quit();
+        }
+        private void PdfErzeugen(Datei datei)//PDF Erzeugen
+        {
+            string fileExtension; //.extension
+            fileExtension = Path.GetExtension(datei.pfad);
+            switch (fileExtension)
+            {
+                case ".pptx":
+                case ".ppt":
+                    Aspose.Slides.Presentation presentation = new Aspose.Slides.Presentation(datei.pfad);
+                    presentation.Save(datei.newPath + ".pdf", Aspose.Slides.Export.SaveFormat.Pdf);
+                    break;
+                case ".doc":
+                case ".docx":
+                    Aspose.Words.Document doc = new Aspose.Words.Document(datei.pfad);
+                    doc.Save(datei.newPath + ".pdf");
+                    break;
+                case ".xlsx":
+                    Aspose.Cells.Workbook workbook = new Aspose.Cells.Workbook(datei.pfad);
+                    workbook.Save(datei.newPath + ".pdf");
+                    break;
+                default:
+                    MessageBox.Show("Dieser Datei Typ wird nicht unterstützt. Nur pptx, ppt, doc, docx, xlsx Typen sind zu verwenden.");
+                    break;
+            }
+        }
+        private void UmlautEntfernen(Datei datei)//Umlaut entfernen
+        {
+            Microsoft.Office.Interop.Word.Application app = new Application();
+            object o = Missing.Value;
+            object oTrue = true;
+            object oFalse = false;
             Microsoft.Office.Interop.Word.Document doc = null;
             doc = app.Documents.Open(datei.pfad, ref o, ref o, ref o, ref o, ref o, ref o, ref o, ref o, ref o, ref o, ref o, ref o, ref o, ref o, ref o);
             doc.Activate();
@@ -229,7 +222,7 @@ namespace aQua_Institut_Druckmanger //drucken ohne Dialog
             doc.Close();
             app.Quit();
         }
-        private void FindAndReplace(Microsoft.Office.Interop.Word.Application app, object findText, object replaceWithText)
+        private void FindAndReplace(Microsoft.Office.Interop.Word.Application app, object findText, object replaceWithText)//Umlaut entfernen
         {
             object oFalse = false;
             object oTrue = true;
@@ -237,30 +230,6 @@ namespace aQua_Institut_Druckmanger //drucken ohne Dialog
              
             app.Selection.Find.Execute(ref findText, oFalse, oFalse, oFalse, oFalse, oFalse, oTrue, oFalse, oFalse, ref replaceWithText, 2, oFalse, oFalse, oFalse, oFalse);
         }
-        private void PdfErzeugen(Datei datei)
-        {
-            string fileExtension; //.extension
-            fileExtension = Path.GetExtension(datei.pfad);
-            switch (fileExtension)
-            {
-                case ".pptx": case ".ppt":
-                    Aspose.Slides.Presentation presentation = new Aspose.Slides.Presentation(datei.pfad);
-                    presentation.Save(datei.NeuerDateiname + ".pdf", Aspose.Slides.Export.SaveFormat.Pdf);
-                    break;
-                case ".doc": case".docx":
-                    Aspose.Words.Document doc = new Aspose.Words.Document(datei.pfad);
-                    doc.Save(datei.newPath + ".pdf");
-                    break;
-                case ".xlsx":
-                    Aspose.Cells.Workbook workbook = new Aspose.Cells.Workbook(datei.pfad);
-                    workbook.Save(datei.NeuerDateiname+".pdf", Aspose.Cells.SaveFormat.Pdf);
-                    break;  
-                default: MessageBox.Show("Dieser Datei Typ wird nicht unterstützt. Nur pptx, ppt, doc, docx, xlsx Typen sind zu verwenden.");
-                    break;
-            }
-            
-        }
-
         private void dataGridView1_DragDrop(object sender, DragEventArgs e)
         {
 
