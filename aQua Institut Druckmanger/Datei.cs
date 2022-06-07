@@ -20,8 +20,8 @@ namespace aQua_Institut_Druckmanger
         public bool UmlautEntfernen { get; set; }
         [DisplayName("PDF")]
         public bool PDFErzeugen { get; set; }
-        [DisplayName("Wasserzeichen")]
-        public string WasserzeichenHinzufügen { get; set; }
+        [DisplayName("Text Wasserzeichen")]
+        public string TextWasserzeichen { get; set; }
         public string pfad { get; set; }
         public string newFileDirectory { get; set; }
         public string fileDirectory { get; set; }
